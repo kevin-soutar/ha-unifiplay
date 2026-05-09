@@ -24,7 +24,7 @@ EQ_PRESET_OPTIONS = ["Custom", "Music", "Movie", "Night", "Off"]
 
 SOURCE_OPTIONS = {
     "streaming": "Streaming",
-    "hdmi": "HDMI eARC",
+    "earc": "HDMI eARC",
     "lineIn": "Line In",
     "spdif": "SPDIF",
     "usb": "USB",
