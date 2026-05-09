@@ -22,7 +22,13 @@ CHANNEL_REVERSE = {v: k for k, v in CHANNEL_OPTIONS.items()}
 
 EQ_PRESET_OPTIONS = ["Custom", "Music", "Movie", "Night", "Off"]
 
-SOURCE_OPTIONS = {"streaming": "Streaming", "hdmi": "HDMI eARC", "lineIn": "Line In"}
+SOURCE_OPTIONS = {
+    "streaming": "Streaming",
+    "hdmi": "HDMI eARC",
+    "lineIn": "Line In",
+    "spdif": "SPDIF",
+    "usb": "USB",
+}
 SOURCE_REVERSE = {v: k for k, v in SOURCE_OPTIONS.items()}
 
 

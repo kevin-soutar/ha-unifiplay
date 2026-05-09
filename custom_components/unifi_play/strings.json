@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connect to UniFi Play",
-        "description": "Enter your UDM Pro (or UniFi OS Console) address and an API key.",
+        "description": "Enter one device per line in the format: Name, IP Address, MAC Address",
         "data": {
           "controller_host": "Controller Host",
           "api_key": "API Key"
