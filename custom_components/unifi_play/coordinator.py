@@ -6,9 +6,8 @@ import asyncio
 import logging
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .api import UnifiPlayApi, UnifiPlayApiError
 from .mqtt_client import UnifiPlayMqttClient
 
 _LOGGER = logging.getLogger(__name__)
@@ -29,7 +28,7 @@ class UnifiPlayDeviceState:
         self.source: str = ""
         self.stream_playing: bool = False
         self.muted: bool = False
-        self.device_name: str = self.name
+        self.device_name: str = device_data.get("deviceName", self.name)
         self.upgrade_status: str = ""
         self.balance: int = 0
         self.loudness: bool = False
@@ -127,34 +126,25 @@ class UnifiPlayDeviceState:
             self.now_playing_cover = body["cover_path"]
 
     def update_from_online(self, body: dict) -> None:
-        """Update online status from an MQTT 'online' event."""
+        """Update online status."""
         self.online = body.get("status", 0) == 1
 
 
 class UnifiPlayCoordinator(DataUpdateCoordinator[dict[str, UnifiPlayDeviceState]]):
-    """Coordinates REST discovery + MQTT real-time updates for all devices."""
+    """Coordinates static devices + MQTT real-time updates."""
 
-    def __init__(self, hass: HomeAssistant, api: UnifiPlayApi) -> None:
-        super().__init__(
-            hass,
-            _LOGGER,
-            name="UniFi Play",
-        )
-        self.api = api
+    def __init__(self, hass: HomeAssistant, devices: list[dict]) -> None:
+        super().__init__(hass, _LOGGER, name="UniFi Play")
+        self._configured_devices = devices
         self._mqtt_clients: dict[str, UnifiPlayMqttClient] = {}
-        self._device_states: dict[str, UnifiPlayDeviceState] = {}
+        self._device_states: dict[str, UnifiPlayDeviceState] = {
+            device["id"]: UnifiPlayDeviceState(device) for device in devices
+        }
 
     async def _async_update_data(self) -> dict[str, UnifiPlayDeviceState]:
-        """Fetch device list from REST and return current state dict."""
-        try:
-            devices = await self.api.get_devices()
-        except UnifiPlayApiError as err:
-            raise UpdateFailed(f"Error fetching devices: {err}") from err
-
-        for dev in devices:
+        """Start MQTT clients for all statically configured devices."""
+        for dev in self._configured_devices:
             dev_id = dev["id"]
-            if dev_id not in self._device_states:
-                self._device_states[dev_id] = UnifiPlayDeviceState(dev)
             ip = dev.get("ip", "")
             mac = dev.get("mac", "")
             if ip and mac and dev_id not in self._mqtt_clients:
@@ -178,9 +168,7 @@ class UnifiPlayCoordinator(DataUpdateCoordinator[dict[str, UnifiPlayDeviceState]
         except Exception:
             _LOGGER.exception("Failed to connect MQTT to %s (%s)", ip, mac)
 
-    def _handle_event(
-        self, device_id: str, event_name: str, header: dict, body: dict
-    ) -> None:
+    def _handle_event(self, device_id: str, event_name: str, header: dict, body: dict) -> None:
         """Process an incoming MQTT event and update state."""
         state = self._device_states.get(device_id)
         if state is None:
@@ -207,4 +195,3 @@ class UnifiPlayCoordinator(DataUpdateCoordinator[dict[str, UnifiPlayDeviceState]
         for client in self._mqtt_clients.values():
             await client.disconnect()
         self._mqtt_clients.clear()
-        await self.api.close()

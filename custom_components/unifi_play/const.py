@@ -2,8 +2,7 @@
 
 DOMAIN = "unifi_play"
 
-CONF_CONTROLLER_HOST = "controller_host"
-CONF_API_KEY = "api_key"
+CONF_DEVICES = "devices"
 
 MQTT_PORT = 8883
 MQTT_KEEPALIVE = 60
